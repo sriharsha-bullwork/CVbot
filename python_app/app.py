@@ -18,9 +18,20 @@ def getFramesGenerator():
         time.sleep(0.01)    # ограничение fps (если видео тупит, можно убрать)
         success, frame = camera.read()  # Получаем фрейм с камеры
         if success:
-            frame = cv2.resize(frame, (320, 240), interpolation=cv2.INTER_AREA)  # уменьшаем разрешение кадров (если видео тупит, можно уменьшить еще больше)
+            # уменьшаем разрешение кадров (если видео тупит, можно уменьшить еще больше)
+            frame = cv2.resize(frame, (320*3, 240*3),
+                               interpolation=cv2.INTER_AREA)
             # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)   # перевод изображения в градации серого
             # _, frame = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)  # бинаризуем изображение
+            # Using cv2.putText()
+            frame = cv2.putText(
+                img=frame,
+                text="Good Morning",
+                org=(200, 200),
+                fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                fontScale=3.0,
+                color=(125, 246, 55),
+                thickness=3)
             _, buffer = cv2.imencode('.jpg', frame)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
@@ -42,7 +53,8 @@ def index():
 def control():
     """ Пришел запрос на управления роботом """
     global controlX, controlY
-    controlX, controlY = float(request.args.get('x')) / 100.0, float(request.args.get('y')) / 100.0
+    controlX, controlY = float(request.args.get(
+        'x')) / 100.0, float(request.args.get('y')) / 100.0
     return '', 200, {'Content-Type': 'text/plain'}
 
 
@@ -54,33 +66,45 @@ if __name__ == '__main__':
     }
 
     # параметры робота
-    speedScale = 0.65  # определяет скорость в процентах (0.50 = 50%) от максимальной абсолютной
+    # определяет скорость в процентах (0.50 = 50%) от максимальной абсолютной
+    speedScale = 0.65
     maxAbsSpeed = 100  # максимальное абсолютное отправляемое значение скорости
     sendFreq = 10  # слать 10 пакетов в секунду
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--port', type=int, default=5000, help="Running port")
-    parser.add_argument("-i", "--ip", type=str, default='127.0.0.1', help="Ip address")
-    parser.add_argument('-s', '--serial', type=str, default='/dev/ttyUSB0', help="Serial port")
+    parser.add_argument('-p', '--port', type=int,
+                        default=5000, help="Running port")
+    parser.add_argument("-i", "--ip", type=str,
+                        default='192.168.68.113', help="Ip address")
+    parser.add_argument('-s', '--serial', type=str,
+                        default='/dev/ttyUSB0', help="Serial port")
     args = parser.parse_args()
 
-    serialPort = serial.Serial(args.serial, 9600)   # открываем uart
+    # serialPort = serial.Serial(args.serial, 9600)   # открываем uart
 
     def sender():
         """ функция цикличной отправки пакетов по uart """
         global controlX, controlY
         while True:
-            speedA = maxAbsSpeed * (controlY + controlX)    # преобразуем скорость робота,
-            speedB = maxAbsSpeed * (controlY - controlX)    # в зависимости от положения джойстика
+            # преобразуем скорость робота,
+            speedA = maxAbsSpeed * (controlY + controlX)
+            # в зависимости от положения джойстика
+            speedB = maxAbsSpeed * (controlY - controlX)
 
-            speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))    # функция аналогичная constrain в arduino
-            speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))    # функция аналогичная constrain в arduino
+            # функция аналогичная constrain в arduino
+            speedA = max(-maxAbsSpeed, min(speedA, maxAbsSpeed))
+            # функция аналогичная constrain в arduino
+            speedB = max(-maxAbsSpeed, min(speedB, maxAbsSpeed))
 
-            msg["speedA"], msg["speedB"] = speedScale * speedA, speedScale * speedB     # урезаем скорость и упаковываем
+            msg["speedA"], msg["speedB"] = speedScale * \
+                speedA, speedScale * speedB     # урезаем скорость и упаковываем
 
-            serialPort.write(json.dumps(msg, ensure_ascii=False).encode("utf8"))  # отправляем пакет в виде json файла
+            serialPort.write(json.dumps(msg, ensure_ascii=False).encode(
+                "utf8"))  # отправляем пакет в виде json файла
             time.sleep(1 / sendFreq)
 
-    threading.Thread(target=sender, daemon=True).start()    # запускаем тред отправки пакетов по uart с демоном
+    # запускаем тред отправки пакетов по uart с демоном
+    threading.Thread(target=sender, daemon=True).start()
 
-    app.run(debug=False, host=args.ip, port=args.port)   # запускаем flask приложение
+    # запускаем flask приложение
+    app.run(debug=False, host=args.ip, port=args.port)
