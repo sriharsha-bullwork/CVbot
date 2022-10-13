@@ -14,8 +14,12 @@ controlX, controlY = 0, 0  # глобальные переменные поло�
 
 def getFramesGenerator():
     """ Генератор фреймов для вывода в веб-страницу, тут же можно поиграть с openCV"""
+
+    fps_avg_frame_count = 10
+    counter, fps = 0, 0
+    start_time = time.time()
     while True:
-        time.sleep(0.01)    # ограничение fps (если видео тупит, можно убрать)
+        # time.sleep(0.01)    # ограничение fps (если видео тупит, можно убрать)
         success, frame = camera.read()  # Получаем фрейм с камеры
         if success:
             # уменьшаем разрешение кадров (если видео тупит, можно уменьшить еще больше)
@@ -24,9 +28,20 @@ def getFramesGenerator():
             # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)   # перевод изображения в градации серого
             # _, frame = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)  # бинаризуем изображение
             # Using cv2.putText()
+
+            # Calculate the FPS
+            counter += 1
+
+            if counter % fps_avg_frame_count == 0:
+                end_time = time.time()
+                fps = fps_avg_frame_count / (end_time - start_time)
+                start_time = time.time()
+
+            # Show the FPS
+            fps_text = 'FPS = {:.1f}'.format(fps)
             frame = cv2.putText(
                 img=frame,
-                text="Good Morning",
+                text=fps_text,
                 org=(200, 200),
                 fontFace=cv2.FONT_HERSHEY_DUPLEX,
                 fontScale=3.0,
@@ -75,7 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', type=int,
                         default=5000, help="Running port")
     parser.add_argument("-i", "--ip", type=str,
-                        default='192.168.68.113', help="Ip address")
+                        default='192.168.0.107', help="Ip address")
     parser.add_argument('-s', '--serial', type=str,
                         default='/dev/ttyUSB0', help="Serial port")
     args = parser.parse_args()
