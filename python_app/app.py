@@ -90,7 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', type=int,
                         default=5000, help="Running port")
     parser.add_argument("-i", "--ip", type=str,
-                        default='192.168.0.107', help="Ip address")
+                        default='192.168.68.124', help="Ip address")
     parser.add_argument('-s', '--serial', type=str,
                         default='/dev/ttyUSB0', help="Serial port")
     args = parser.parse_args()
